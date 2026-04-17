@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>Moon Coffee POS | Cup Size R / L | Logo + Print Invoice</title>
+    <link rel="icon" href="image/Moon-Coffee.ico" type="image/x-icon" />
+    <!-- Tailwind CSS + Font Awesome 6 + Google Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <style>
+      * {
+        font-family:
+          'Inter',
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+      .product-card {
+        transition: all 0.2s ease;
+      }
+      .product-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px -12px rgba(0, 0, 0, 0.15);
+      }
+      .order-items-scroll {
+        max-height: 340px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+      }
+      .category-tab.active {
+        background-color: #8a6f57;
+        color: #e8dcc8;
+        border-color: #8a6f57;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      button:focus-visible {
+        outline: 2px solid #8a6f57;
+        outline-offset: 2px;
+      }
+      .icon-cup-bg {
+        background: linear-gradient(135deg, #f7f1ea 0%, #efe4d8 100%);
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.2s ease-out;
+      }
+      .uniform-cup-icon {
+        font-size: 1.4rem;
+      }
+      .logo-image {
+        width: 44px;
+        height: 44px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 2px solid #e8dcc8;
+        background: #f0e8dd;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      /* Size badge */
+      .size-badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+        background: #f3ede4;
+        color: #8a6f57;
+      }
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #invoicePrintArea,
+        #invoicePrintArea * {
+          visibility: visible;
+        }
+        #invoicePrintArea {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background: white;
+          padding: 20px;
+          z-index: 9999;
+        }
+        .no-print {
+          display: none !important;
+        }
+        button,
+        .category-tab,
+        .select-sugar-btn,
+        #clearCartBtn,
+        #checkoutBtn,
+        #logoutBtn {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-[#F9F5EF] antialiased">
+    <!-- LOGIN MODAL -->
+    <div
+      id="loginModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300"
+    >
+      <div
+        class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-fade-in-up"
+      >
+        <div class="bg-[#8A6F57] px-6 py-5 text-[#E8DCC8] text-center">
+          <i class="fas fa-moon text-3xl mb-2 block"></i>
+          <h2 class="text-2xl font-bold">Moon Coffee POS</h2>
+        </div>
+        <div class="p-6">
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-1"
+              ><i class="fas fa-user mr-2 text-[#8A6F57]"></i>Username</label
+            >
+            <input
+              type="text"
+              id="loginUsername"
+              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A6F57] focus:border-transparent"
+              placeholder="barista@mooncoffee"
+            />
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-1"
+              ><i class="fas fa-lock mr-2 text-[#8A6F57]"></i>Password</label
+            >
+            <input
+              type="password"
+              id="loginPassword"
+              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A6F57] focus:border-transparent"
+              placeholder="••••••"
+            />
+          </div>
+          <button
+            id="loginBtn"
+            class="w-full bg-[#8A6F57] hover:bg-[#735B45] text-white font-bold py-2.5 rounded-xl transition shadow-md flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-key"></i> Login to POS
+          </button>
+          <p class="text-xs text-center text-stone-400 mt-4">
+            demo: any username / password (or "admin")
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN POS APP -->
+    <div id="posApp" class="min-h-screen flex flex-col" style="display: none">
+      <!-- HEADER with Moon Coffee Logo -->
+      <header
+        class="w-full px-6 md:px-8 py-3 shadow-md flex flex-wrap items-center justify-between gap-3"
+        style="background-color: #8a6f57; color: #e8dcc8"
+      >
+        <div class="flex items-center gap-3 flex-wrap">
+          <img
+            id="headerLogo"
+            class="logo-image"
+            src="image/Moon-Coffee.png"
+            alt="Moon Coffee Logo"
+            onerror="
+              this.onerror = null;
+              this.src =
+                'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27%238A6F57%27%3E%3Cpath d=%27M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z%27/%3E%3C/svg%3E';
+            "
+          />
+          <span class="text-xl md:text-2xl font-bold tracking-tight" style="color: #e8dcc8"
+            >Moon Coffee</span
+          >
+          <div class="h-7 w-px bg-[#E8DCC8]/40 hidden md:block"></div>
+          <div
+            class="flex items-center gap-2 text-sm md:text-base font-light bg-[#7A5E48]/30 px-3 py-1 rounded-full backdrop-blur-sm"
+          >
+            <i class="far fa-calendar-alt text-xs"></i>
+            <span id="currentDate" class="whitespace-nowrap">--</span>
+            <span class="hidden xs:inline">•</span>
+            <i class="far fa-clock text-xs ml-0 md:ml-1"></i>
+            <span id="currentTime" class="font-mono font-medium">--:--</span>
+          </div>
+          <div class="flex gap-1 ml-1">
+            <span class="bg-[#E8DCC8]/20 px-2 py-0.5 rounded-full text-xs font-mono"
+              ><i class="fas fa-dollar-sign"></i> USD</span
+            >
+            <span class="bg-[#E8DCC8]/20 px-2 py-0.5 rounded-full text-xs font-mono"
+              ><i class="fas fa-money-bill-wave"></i> ៛ KHR</span
+            >
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div
+            class="flex items-center gap-3 bg-[#7A5E48]/30 rounded-full pl-2 pr-4 py-1.5 shadow-sm"
+          >
+            <div
+              class="w-8 h-8 md:w-9 md:h-9 rounded-full bg-[#E8DCC8] flex items-center justify-center text-[#8A6F57] shadow-sm"
+            >
+              <i class="fas fa-user-circle text-xl md:text-2xl"></i>
+            </div>
+            <div class="flex flex-col leading-tight">
+              <span class="text-xs font-medium opacity-90" style="color: #e8dcc8">Barista</span>
+              <span
+                id="baristaNameDisplay"
+                class="text-sm md:text-base font-semibold tracking-wide"
+                style="color: #e8dcc8"
+                >Emma Lawson</span
+              >
+            </div>
+          </div>
+          <button
+            id="logoutBtn"
+            class="text-xs bg-[#7A5E48]/40 hover:bg-[#5E4432] text-[#E8DCC8] px-3 py-1.5 rounded-full transition flex items-center gap-1"
+          >
+            <i class="fas fa-sign-out-alt"></i> Exit
+          </button>
+        </div>
+      </header>
+
+      <!-- MAIN POS GRID -->
+      <main class="flex-1 max-w-7xl w-full mx-auto px-4 md:px-6 py-6 md:py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- LEFT: CATEGORY TABS + PRODUCTS with Size Selection -->
+          <div
+            class="lg:col-span-2 bg-white/80 rounded-2xl shadow-md p-4 md:p-5 border border-[#EADBC5]"
+          >
+            <div class="flex flex-wrap gap-2 mb-5 border-b border-[#EADBC5] pb-3">
+              <button
+                data-category="hot"
+                class="category-tab active px-5 py-2 rounded-full text-sm font-semibold transition-all bg-[#8A6F57] text-[#E8DCC8] shadow-sm"
+              >
+                <i class="fas fa-fire mr-1"></i> Hot Coffee
+              </button>
+              <button
+                data-category="ice"
+                class="category-tab px-5 py-2 rounded-full text-sm font-semibold transition-all bg-gray-100 text-[#5E3E2B] hover:bg-gray-200"
+              >
+                <i class="fas fa-ice-cream mr-1"></i> Iced Coffee
+              </button>
+              <button
+                data-category="frappe"
+                class="category-tab px-5 py-2 rounded-full text-sm font-semibold transition-all bg-gray-100 text-[#5E3E2B] hover:bg-gray-200"
+              >
+                <i class="fas fa-blender mr-1"></i> Frappe
+              </button>
+              <button
+                data-category="tea"
+                class="category-tab px-5 py-2 rounded-full text-sm font-semibold transition-all bg-gray-100 text-[#5E3E2B] hover:bg-gray-200"
+              >
+                <i class="fas fa-leaf mr-1"></i> Tea & More
+              </button>
+            </div>
+            <div id="productsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+          </div>
+
+          <!-- RIGHT: ORDER SUMMARY -->
+          <div
+            class="bg-white rounded-2xl shadow-lg border border-[#EADBC5] flex flex-col h-fit sticky top-24"
+          >
+            <div class="p-4 border-b border-[#EEDFCB] bg-[#FEFAF5] rounded-t-2xl">
+              <div class="flex justify-between items-center flex-wrap gap-2">
+                <h3 class="font-bold text-lg text-[#4A3525]">
+                  <i class="fas fa-clipboard-list mr-2 text-[#8A6F57]"></i> Current Order
+                </h3>
+                <div class="flex gap-2">
+                  <button
+                    id="printInvoiceBtn"
+                    class="text-xs bg-[#E8DCC8] hover:bg-[#DCC8B0] text-[#6B4C3A] px-3 py-1.5 rounded-full transition flex items-center gap-1"
+                  >
+                    <i class="fas fa-print"></i> Print
+                  </button>
+                  <button
+                    id="clearCartBtn"
+                    class="text-xs bg-[#F3EDE4] hover:bg-[#E8DCC8] text-[#6B4C3A] px-3 py-1.5 rounded-full transition flex items-center gap-1"
+                  >
+                    <i class="fas fa-trash-alt"></i> Clear
+                  </button>
+                </div>
+              </div>
+              <p class="text-xs text-stone-400 mt-1">Size R/L • Sugar level</p>
+            </div>
+
+            <div class="order-items-scroll p-4 flex-1 bg-[#FEFAF5]" id="cartItemsContainer">
+              <div
+                id="emptyCartMsg"
+                class="text-center text-stone-400 py-8 flex flex-col items-center gap-2"
+              >
+                <i class="fas fa-mug-empty text-4xl opacity-40"></i>
+                <span>No items yet. Choose size & sugar!</span>
+              </div>
+              <ul id="cartList" class="space-y-3"></ul>
+            </div>
+
+            <!-- Totals footer -->
+            <div class="p-4 border-t border-[#EEDFCB] bg-white rounded-b-2xl">
+              <div class="flex justify-between text-base font-semibold text-[#3E2A1F]">
+                <span>Subtotal (USD)</span>
+                <span id="subtotalUSD">$0.00</span>
+              </div>
+              <div class="flex justify-between text-sm text-stone-500 mt-0.5">
+                <span>Subtotal (KHR)</span>
+                <span id="subtotalKHR">៛0</span>
+              </div>
+              <div class="flex justify-between text-sm text-stone-500 mt-1">
+                <span>Tax 8.5% (USD)</span>
+                <span id="taxUSD">$0.00</span>
+              </div>
+              <div class="flex justify-between text-sm text-stone-500">
+                <span>Tax 8.5% (KHR)</span>
+                <span id="taxKHR">៛0</span>
+              </div>
+              <div
+                class="flex justify-between text-xl font-extrabold mt-2 pt-2 border-t border-dashed border-[#EADBC5] text-[#8A6F57]"
+              >
+                <span>Total (USD)</span>
+                <span id="totalUSD">$0.00</span>
+              </div>
+              <div class="flex justify-between text-md font-bold mt-1 text-[#6B4C3A]">
+                <span>Total (KHR)</span>
+                <span id="totalKHR">៛0</span>
+              </div>
+              <button
+                id="checkoutBtn"
+                class="mt-4 w-full bg-[#8A6F57] hover:bg-[#735B45] text-white font-semibold py-2.5 rounded-xl transition shadow-md flex items-center justify-center gap-2"
+              >
+                <i class="fas fa-credit-card"></i> Pay & Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+      <div
+        id="toastMsg"
+        class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#4A3525] text-[#F9F0E4] px-5 py-2.5 rounded-full shadow-xl text-sm font-medium z-50 transition-all duration-300 opacity-0 pointer-events-none backdrop-blur-sm"
+      ></div>
+    </div>
+
+    <script>
+      // ---------- DUAL CURRENCY ----------
+      const USD_TO_KHR = 4100;
+      function toKHR(usdAmount) {
+        return Math.round(usdAmount * USD_TO_KHR);
+      }
+      function formatUSD(amount) {
+        return `$${amount.toFixed(2)}`;
+      }
+      function formatKHR(amountKHR) {
+        return `៛${amountKHR.toLocaleString('en-US')}`;
+      }
+
+      // Size pricing: Regular (R) = base price, Large (L) = +$1.20 USD
+      const SIZE_PRICE_EXTRA = { R: 0, L: 1.2 };
+      const SIZE_LABELS = { R: 'Regular', L: 'Large' };
+
+      // Menu items (base price for Regular size)
+      const products = [
+        {
+          id: 1,
+          name: 'Flat White',
+          basePriceUSD: 4.5,
+          category: 'hot',
+          baseDesc: 'Velvety microfoam',
+        },
+        {
+          id: 2,
+          name: 'Caramel Latte',
+          basePriceUSD: 5.25,
+          category: 'hot',
+          baseDesc: 'Buttery caramel',
+        },
+        {
+          id: 3,
+          name: 'Espresso Shot',
+          basePriceUSD: 3.0,
+          category: 'hot',
+          baseDesc: 'Bold single origin',
+        },
+        { id: 4, name: 'Cappuccino', basePriceUSD: 4.75, category: 'hot', baseDesc: 'Rich foam' },
+        {
+          id: 5,
+          name: 'Mocha',
+          basePriceUSD: 5.5,
+          category: 'hot',
+          baseDesc: 'Chocolate espresso',
+        },
+        {
+          id: 6,
+          name: 'Hazelnut Latte',
+          basePriceUSD: 5.45,
+          category: 'hot',
+          baseDesc: 'Nutty aromatic',
+        },
+        {
+          id: 7,
+          name: 'Irish Coffee',
+          basePriceUSD: 6.0,
+          category: 'hot',
+          baseDesc: 'Whiskey delight',
+        },
+        {
+          id: 8,
+          name: 'Iced Americano',
+          basePriceUSD: 4.25,
+          category: 'ice',
+          baseDesc: 'Chilled & crisp',
+        },
+        {
+          id: 9,
+          name: 'Iced Vanilla Latte',
+          basePriceUSD: 5.45,
+          category: 'ice',
+          baseDesc: 'Vanilla sweetness',
+        },
+        { id: 10, name: 'Cold Brew', basePriceUSD: 4.9, category: 'ice', baseDesc: 'Slow steeped' },
+        {
+          id: 11,
+          name: 'Iced Caramel Macchiato',
+          basePriceUSD: 5.75,
+          category: 'ice',
+          baseDesc: 'Layered caramel',
+        },
+        {
+          id: 12,
+          name: 'Nitro Cold Brew',
+          basePriceUSD: 5.95,
+          category: 'ice',
+          baseDesc: 'Creamy nitrogen',
+        },
+        {
+          id: 13,
+          name: 'Caramel Frappe',
+          basePriceUSD: 6.25,
+          category: 'frappe',
+          baseDesc: 'Blended dream',
+        },
+        {
+          id: 14,
+          name: 'Mocha Frappe',
+          basePriceUSD: 6.5,
+          category: 'frappe',
+          baseDesc: 'Chocolate frost',
+        },
+        {
+          id: 15,
+          name: 'Vanilla Bean Frappe',
+          basePriceUSD: 6.0,
+          category: 'frappe',
+          baseDesc: 'Creamy vanilla',
+        },
+        {
+          id: 16,
+          name: 'Matcha Frappe',
+          basePriceUSD: 6.3,
+          category: 'frappe',
+          baseDesc: 'Green tea ice',
+        },
+        {
+          id: 17,
+          name: 'Strawberry Frappe',
+          basePriceUSD: 6.4,
+          category: 'frappe',
+          baseDesc: 'Fruity delight',
+        },
+        {
+          id: 18,
+          name: 'Matcha Latte',
+          basePriceUSD: 5.2,
+          category: 'tea',
+          baseDesc: 'Ceremonial matcha',
+        },
+        {
+          id: 19,
+          name: 'Chai Tea Latte',
+          basePriceUSD: 5.0,
+          category: 'tea',
+          baseDesc: 'Spiced black tea',
+        },
+        {
+          id: 20,
+          name: 'London Fog',
+          basePriceUSD: 4.95,
+          category: 'tea',
+          baseDesc: 'Earl grey vanilla',
+        },
+        {
+          id: 21,
+          name: 'Peach Iced Tea',
+          basePriceUSD: 4.5,
+          category: 'tea',
+          baseDesc: 'Fruit infused',
+        },
+        {
+          id: 22,
+          name: 'Jasmine Green Tea',
+          basePriceUSD: 4.3,
+          category: 'tea',
+          baseDesc: 'Floral fragrant',
+        },
+      ];
+
+      const sugarLevels = [
+        { value: 30, label: '30%', desc: 'Light' },
+        { value: 50, label: '50%', desc: 'Half' },
+        { value: 70, label: '70%', desc: 'Balanced' },
+        { value: 80, label: '80%', desc: 'Sweet' },
+        { value: 100, label: '100%', desc: 'Classic' },
+      ];
+
+      let cart = []; // each item: { id, name, size, priceUSD, sugarLabel, uniqueKey }
+      let activeCategory = 'hot';
+      let currentBaristaName = 'Emma Lawson';
+
+      // DOM elements
+      const posApp = document.getElementById('posApp');
+      const loginModal = document.getElementById('loginModal');
+      const loginBtn = document.getElementById('loginBtn');
+      const loginUsername = document.getElementById('loginUsername');
+      const loginPassword = document.getElementById('loginPassword');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const baristaNameDisplay = document.getElementById('baristaNameDisplay');
+      const productsContainer = document.getElementById('productsContainer');
+      const cartListEl = document.getElementById('cartList');
+      const emptyCartMsg = document.getElementById('emptyCartMsg');
+      const subtotalUSDSpan = document.getElementById('subtotalUSD');
+      const subtotalKHRSpan = document.getElementById('subtotalKHR');
+      const taxUSDSpan = document.getElementById('taxUSD');
+      const taxKHRSpan = document.getElementById('taxKHR');
+      const totalUSDSpan = document.getElementById('totalUSD');
+      const totalKHRSpan = document.getElementById('totalKHR');
+      const clearCartBtn = document.getElementById('clearCartBtn');
+      const checkoutBtn = document.getElementById('checkoutBtn');
+      const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+      const currentDateSpan = document.getElementById('currentDate');
+      const currentTimeSpan = document.getElementById('currentTime');
+      const toastEl = document.getElementById('toastMsg');
+      const headerLogo = document.getElementById('headerLogo');
+
+      function showToast(message, duration = 2000) {
+        toastEl.textContent = message;
+        toastEl.classList.remove('opacity-0', 'pointer-events-none');
+        toastEl.classList.add('opacity-100');
+        setTimeout(() => {
+          toastEl.classList.add('opacity-0', 'pointer-events-none');
+          toastEl.classList.remove('opacity-100');
+        }, duration);
+      }
+
+      function updateDateTime() {
+        const now = new Date();
+        const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+        if (currentDateSpan) currentDateSpan.textContent = now.toLocaleDateString('en-US', options);
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        if (currentTimeSpan) currentTimeSpan.textContent = `${hours}:${minutes}:${seconds}`;
+      }
+      setInterval(updateDateTime, 1000);
+      updateDateTime();
+
+      // Render products with size selection buttons (R / L)
+      function renderProducts() {
+        if (!productsContainer) return;
+        const filtered = products.filter((p) => p.category === activeCategory);
+        if (filtered.length === 0) {
+          productsContainer.innerHTML = `<div class="col-span-full text-center py-10 text-stone-400"><i class="fas fa-mug-empty fa-2x mb-2"></i>No drinks</div>`;
+          return;
+        }
+        productsContainer.innerHTML = '';
+        filtered.forEach((product) => {
+          const priceR_KHR = toKHR(product.basePriceUSD);
+          const priceL_USD = product.basePriceUSD + SIZE_PRICE_EXTRA['L'];
+          const priceL_KHR = toKHR(priceL_USD);
+          const card = document.createElement('div');
+          card.className =
+            'product-card bg-white rounded-xl p-3 border border-[#EFE3D4] shadow-sm hover:shadow-md';
+          card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-11 h-11 rounded-xl icon-cup-bg flex items-center justify-center text-[#8A6F57] text-xl">
+              <i class="fas fa-mug-hot"></i>
+            </div>
+            <div class="flex-1">
+              <div class="flex justify-between items-start flex-wrap gap-1">
+                <p class="font-bold text-gray-800">${product.name}</p>
+              </div>
+              <p class="text-xs text-stone-400 mt-0.5">${product.baseDesc}</p>
+              <div class="mt-2 flex justify-between items-center flex-wrap gap-2">
+                <div class="flex gap-2">
+                  <button data-id="${product.id}" data-size="R" class="size-select-btn bg-[#F3EDE4] hover:bg-[#E8DCC8] text-[#6B4C3A] text-xs px-3 py-1 rounded-full transition font-semibold">R - ${formatUSD(product.basePriceUSD)}</button>
+                  <button data-id="${product.id}" data-size="L" class="size-select-btn bg-[#F3EDE4] hover:bg-[#E8DCC8] text-[#6B4C3A] text-xs px-3 py-1 rounded-full transition font-semibold">L - ${formatUSD(priceL_USD)}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+          productsContainer.appendChild(card);
+        });
+        document.querySelectorAll('.size-select-btn').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const prodId = parseInt(btn.getAttribute('data-id'));
+            const size = btn.getAttribute('data-size');
+            const product = products.find((p) => p.id === prodId);
+            if (product) openSugarAndConfirmModal(product, size);
+          });
+        });
+      }
+
+      // Modal for sugar selection after size is chosen
+      function openSugarAndConfirmModal(product, size) {
+        const finalPriceUSD = product.basePriceUSD + SIZE_PRICE_EXTRA[size];
+        const finalPriceKHR = toKHR(finalPriceUSD);
+        const sizeLabel = SIZE_LABELS[size];
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className =
+          'fixed inset-0 bg-black/40 flex items-center justify-center z-50 transition-all duration-200';
+        modalOverlay.innerHTML = `
+        <div class="bg-white rounded-2xl max-w-sm w-full mx-4 shadow-2xl overflow-hidden animate-fade-in-up">
+          <div class="bg-[#8A6F57] px-5 py-3 text-[#E8DCC8] flex justify-between items-center">
+            <h3 class="font-bold text-lg"><i class="fas fa-cube"></i> ${product.name} (${sizeLabel})</h3>
+            <button class="closeModalBtn text-[#E8DCC8] hover:text-white text-2xl leading-5">&times;</button>
+          </div>
+          <div class="p-5">
+            <div class="mb-3 text-center">
+              <span class="text-sm text-stone-600">Price: </span>
+              <span class="font-semibold text-[#8A6F57]">${formatUSD(finalPriceUSD)}</span>
+              <span class="text-xs text-stone-500 mx-1">/</span>
+              <span class="font-semibold text-[#8A6F57]">${formatKHR(finalPriceKHR)}</span>
+            </div>
+            <p class="text-sm text-stone-600 mb-3 font-medium">Select sugar level:</p>
+            <div class="grid grid-cols-3 gap-2 mb-5">
+              ${sugarLevels
+                .map(
+                  (level) => `
+                <button data-sugar="${level.value}" data-label="${level.label}" class="sugar-choice-btn border border-[#DCCFBF] rounded-xl py-2 text-sm font-medium hover:bg-[#F3EDE4] transition flex flex-col items-center">${level.label}<span class="text-[10px] text-stone-400">${level.desc}</span></button>
+              `
+                )
+                .join('')}
+            </div>
+            <div class="flex justify-end gap-2">
+              <button class="cancelBtn px-4 py-2 text-sm border rounded-full text-stone-600 hover:bg-gray-50">Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+        document.body.appendChild(modalOverlay);
+        const closeModal = () => modalOverlay.remove();
+        modalOverlay.querySelector('.closeModalBtn')?.addEventListener('click', closeModal);
+        modalOverlay.querySelector('.cancelBtn')?.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+          if (e.target === modalOverlay) closeModal();
+        });
+        modalOverlay.querySelectorAll('.sugar-choice-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const sugarPercent = parseInt(btn.getAttribute('data-sugar'));
+            const sugarLabel = btn.getAttribute('data-label');
+            addToCart(product, size, finalPriceUSD, sugarLabel);
+            closeModal();
+          });
+        });
+      }
+
+      function addToCart(product, size, finalPriceUSD, sugarLabel) {
+        const sizeLabel = SIZE_LABELS[size];
+        cart.push({
+          id: product.id,
+          name: product.name,
+          size: size,
+          sizeLabel: sizeLabel,
+          priceUSD: finalPriceUSD,
+          sugarLabel: sugarLabel,
+          uniqueKey: `${product.id}_${size}_${sugarLabel}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        });
+        renderCart();
+        showToast(
+          `✓ ${product.name} (${sizeLabel}) ${sugarLabel} sugar · ${formatUSD(finalPriceUSD)}`,
+          1800
+        );
+      }
+
+      function removeCartItem(uniqueKey) {
+        cart = cart.filter((item) => item.uniqueKey !== uniqueKey);
+        renderCart();
+        showToast(`Removed item`, 1000);
+      }
+
+      function computeTotals() {
+        const subtotalUSD = cart.reduce((sum, item) => sum + item.priceUSD, 0);
+        const subtotalKHR = toKHR(subtotalUSD);
+        const taxUSD = subtotalUSD * 0.085;
+        const taxKHR = Math.round(subtotalKHR * 0.085);
+        const totalUSD = subtotalUSD + taxUSD;
+        const totalKHR = subtotalKHR + taxKHR;
+        return { subtotalUSD, subtotalKHR, taxUSD, taxKHR, totalUSD, totalKHR };
+      }
+
+      function updateTotalsUI() {
+        const totals = computeTotals();
+        subtotalUSDSpan.textContent = formatUSD(totals.subtotalUSD);
+        subtotalKHRSpan.textContent = formatKHR(totals.subtotalKHR);
+        taxUSDSpan.textContent = formatUSD(totals.taxUSD);
+        taxKHRSpan.textContent = formatKHR(totals.taxKHR);
+        totalUSDSpan.textContent = formatUSD(totals.totalUSD);
+        totalKHRSpan.textContent = formatKHR(totals.totalKHR);
+      }
+
+      function renderCart() {
+        if (!cartListEl || !emptyCartMsg) return;
+        if (cart.length === 0) {
+          emptyCartMsg.classList.remove('hidden');
+          cartListEl.innerHTML = '';
+          updateTotalsUI();
+          return;
+        }
+        emptyCartMsg.classList.add('hidden');
+        cartListEl.innerHTML = '';
+        cart.forEach((item) => {
+          const priceKHR = toKHR(item.priceUSD);
+          const li = document.createElement('li');
+          li.className = 'bg-white rounded-xl p-3 shadow-sm border border-[#F1E8DD]';
+          li.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="font-semibold text-gray-800 flex items-center flex-wrap gap-1">
+                ${item.name}
+                <span class="size-badge">${item.sizeLabel}</span>
+                <span class="text-xs bg-[#E8DCC8] text-[#5E3E2B] px-2 py-0.5 rounded-full"><i class="fas fa-cube fa-xs mr-1"></i>${item.sugarLabel}</span>
+              </div>
+              <div class="text-xs text-stone-400 mt-0.5 flex gap-2">
+                <span>${formatUSD(item.priceUSD)}</span>
+                <span>${formatKHR(priceKHR)}</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-medium text-[#8A6F57]">${formatUSD(item.priceUSD)}</div>
+              <div class="text-xs text-stone-500">${formatKHR(priceKHR)}</div>
+            </div>
+          </div>
+          <div class="flex justify-end mt-2">
+            <button data-key="${item.uniqueKey}" class="remove-cart-item text-xs text-stone-400 hover:text-red-500 transition flex items-center gap-1"><i class="fas fa-times-circle"></i> Remove</button>
+          </div>
+        `;
+          cartListEl.appendChild(li);
+        });
+        document.querySelectorAll('.remove-cart-item').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const key = btn.getAttribute('data-key');
+            removeCartItem(key);
+          });
+        });
+        updateTotalsUI();
+      }
+
+      function clearCart() {
+        if (cart.length > 0) {
+          cart = [];
+          renderCart();
+          showToast('Order cleared', 1300);
+        } else showToast('Cart empty', 1000);
+      }
+
+      function checkout() {
+        if (cart.length === 0) {
+          showToast('No items', 1800);
+          return;
+        }
+        const { totalUSD, totalKHR } = computeTotals();
+        showToast(
+          `✅ Order complete! Total: ${formatUSD(totalUSD)} / ${formatKHR(totalKHR)}`,
+          2500
+        );
+        setTimeout(() => {
+          cart = [];
+          renderCart();
+          showToast('✨ New session', 1500);
+        }, 1500);
+      }
+
+      function printInvoice() {
+        if (cart.length === 0) {
+          showToast('No items to print', 1500);
+          return;
+        }
+        const now = new Date();
+        const dateStr = now.toLocaleString('en-US');
+        const totals = computeTotals();
+        const logoUrl = headerLogo.src;
+        let itemsHtml = '';
+        cart.forEach((item) => {
+          const priceKHR = toKHR(item.priceUSD);
+          itemsHtml += `<tr style="border-bottom:1px solid #ddd;"><td style="padding:6px 4px;">${item.name} (${item.sizeLabel}, ${item.sugarLabel})</td><td style="padding:6px 4px;text-align:right;">${formatUSD(item.priceUSD)}</td><td style="padding:6px 4px;text-align:right;">${formatKHR(priceKHR)}</td></tr>`;
+        });
+        const invoiceHtml = `
+        <div style="max-width:380px;margin:0 auto;font-family:'Inter',monospace;padding:20px;background:white;border-radius:16px;">
+          <div style="text-align:center;margin-bottom:20px;">
+            <img src="${logoUrl}" style="width:70px;height:70px;border-radius:50%;object-fit:cover;margin-bottom:8px;">
+            <h2 style="margin:0;color:#8A6F57;">Moon Coffee</h2>
+            <p style="margin:4px 0;font-size:12px;">Cup Size R / L</p>
+            <p style="margin:4px 0;font-size:10px;color:gray;">${dateStr} | Barista: ${currentBaristaName}</p>
+          </div>
+          <hr style="border-top:1px dashed #8A6F57;">
+          <table style="width:100%;font-size:12px;margin:12px 0;"><thead><tr style="background:#F3EDE4;"><th style="padding:6px;text-align:left;">Item</th><th style="padding:6px;text-align:right;">USD</th><th style="padding:6px;text-align:right;">KHR</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+          <hr><div style="margin-top:12px;"><div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${formatUSD(totals.subtotalUSD)} / ${formatKHR(totals.subtotalKHR)}</span></div><div style="display:flex;justify-content:space-between;"><span>Tax 8.5%:</span><span>${formatUSD(totals.taxUSD)} / ${formatKHR(totals.taxKHR)}</span></div><div style="display:flex;justify-content:space-between;font-weight:bold;margin-top:8px;padding-top:6px;border-top:2px solid #8A6F57;"><span>TOTAL:</span><span>${formatUSD(totals.totalUSD)} / ${formatKHR(totals.totalKHR)}</span></div></div>
+          <hr style="margin-top:16px;"><p style="text-align:center;font-size:10px;color:gray;">☕ Thank you! ☕</p>
+        </div>`;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(
+          `<html><head><title>Moon Coffee Invoice</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"></head><body style="margin:0;padding:20px;background:#f0f0f0;">${invoiceHtml}</body></html>`
+        );
+        printWindow.document.close();
+        printWindow.print();
+      }
+
+      function initCategories() {
+        const tabs = document.querySelectorAll('.category-tab');
+        tabs.forEach((tab) => {
+          tab.addEventListener('click', () => {
+            const cat = tab.getAttribute('data-category');
+            if (!cat) return;
+            activeCategory = cat;
+            tabs.forEach((t) => {
+              if (t.getAttribute('data-category') === activeCategory) {
+                t.classList.add('active', 'bg-[#8A6F57]', 'text-[#E8DCC8]');
+                t.classList.remove('bg-gray-100', 'text-[#5E3E2B]');
+              } else {
+                t.classList.remove('active', 'bg-[#8A6F57]', 'text-[#E8DCC8]');
+                t.classList.add('bg-gray-100', 'text-[#5E3E2B]');
+              }
+            });
+            renderProducts();
+          });
+        });
+      }
+
+      function handleLogin() {
+        const username = loginUsername.value.trim();
+        const password = loginPassword.value.trim();
+        if (username !== '' || password === 'admin') {
+          currentBaristaName = username ? username.split('@')[0] : 'Barista';
+          if (currentBaristaName === '') currentBaristaName = 'Emma Lawson';
+          baristaNameDisplay.textContent = currentBaristaName;
+          loginModal.style.display = 'none';
+          posApp.style.display = 'flex';
+          showToast(`Welcome ${currentBaristaName}! Size R / L available`, 2000);
+          renderProducts();
+          initCategories();
+          renderCart();
+        } else {
+          showToast('Invalid credentials', 1500);
+        }
+      }
+
+      function handleLogout() {
+        cart = [];
+        posApp.style.display = 'none';
+        loginModal.style.display = 'flex';
+        loginUsername.value = '';
+        loginPassword.value = '';
+        showToast('Logged out', 1200);
+      }
+
+      loginBtn.addEventListener('click', handleLogin);
+      logoutBtn.addEventListener('click', handleLogout);
+      clearCartBtn.addEventListener('click', clearCart);
+      checkoutBtn.addEventListener('click', checkout);
+      printInvoiceBtn.addEventListener('click', printInvoice);
+      loginPassword.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLogin();
+      });
+      loginUsername.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLogin();
+      });
+    </script>
+  </body>
+</html>
